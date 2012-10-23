@@ -37,11 +37,11 @@ charger_switch: CHARGER ONOFF {
 target_set: TARGET TEMPERATURE NUMBER {
              printf("\tTemperature set\n");
          };
-gyro: SETCURSOR GYRO ' x:' FLOAT ' y:'  FLOAT ' z:' FLOAT {
+gyro: SETCURSOR GYRO " x:" FLOAT " y:"  FLOAT " z:" FLOAT {
              printf("\tGyro\n");
 
 };
-odometry: SETCURSOR ODOMETRY ' dx:' FLOAT ' dy:' FLOAT ' yaw:' FLOAT {
+odometry: SETCURSOR ODOMETRY " dx:" FLOAT " dy:" FLOAT " yaw:" FLOAT {
              printf("\tOdometry\n");
 
 
