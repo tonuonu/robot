@@ -1,11 +1,12 @@
 
 cmake_minimum_required(VERSION 2.8)
-
+SET(CMAKE_BUILD_TYPE relwithdebug)
 PROJECT( robot )
 FIND_PACKAGE( OpenCV REQUIRED )
 find_package (Threads)
 find_package(BISON)
 find_package(FLEX)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 FLEX_TARGET(scanner yylex.l  ${CMAKE_CURRENT_BINARY_DIR}/yylex.cc)
 BISON_TARGET(parser parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cc)

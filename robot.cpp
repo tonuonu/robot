@@ -44,6 +44,56 @@ int  count = 0;
 #define COUNT_HALT1  3
 #define COUNT_HALT2  6
 
+
+CvRect box;
+bool drawing_box = false;
+bool setroi = false;
+
+void draw_box( IplImage* img, CvRect rect ) {
+    cvRectangle (img,
+	cvPoint(box.x,box.y),
+	cvPoint(box.x+box.width,box.y+box.height),
+        cvScalar(0xff,0x00,0x00)/* red */);
+}
+
+void my_mouse_callback(int event, int x, int y, int flags, void* param) {
+    IplImage* image = (IplImage*) param;
+    switch( event ) {
+        case CV_EVENT_MOUSEMOVE: {
+            if( drawing_box ) {
+                box.width = x-box.x;
+                box.height = y-box.y;
+            }
+        }
+        break;
+        case CV_EVENT_LBUTTONDOWN: {
+            drawing_box = true;
+            setroi= false;
+            box = cvRect(x, y, 0, 0);
+	    if(x<=IMAGE_WIDTH && y<=IMAGE_HEIGHT) {
+	        CvScalar pixel=cvGet2D(image,y,x);
+	        printf("coord x:%3d y:%3d color Y:%3.0f :U%3.0f V:%3.0f\n",x,y,pixel.val[0],pixel.val[1],pixel.val[2]);
+            }
+        }
+        break;
+        case CV_EVENT_LBUTTONUP: {
+            drawing_box = false;
+            setroi = true;
+            if(box.width<0) {
+                box.x+=box.width;
+                box.width *=-1;
+            }
+            if(box.height<0) {
+                box.y+=box.height;
+                box.height*=-1;
+            }
+            draw_box(image, box);
+	    
+        }
+        break;
+    }
+}
+
 main() {
    pthread_t thread1, thread2;
 
