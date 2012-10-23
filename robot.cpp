@@ -1,3 +1,23 @@
+/*
+ *  Copyright (c) 2012, Tõnu Samuel
+ *  All rights reserved.
+ *
+ *  This is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This software is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with TYROS.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -5,7 +25,13 @@
 #include "opencv/highgui.h"
 #include <cvblob.h>
 #include "libcam.h"
-
+#define IMAGE_WIDTH 640
+#define IMAGE_HEIGHT 480
+// YUYV byte order
+#define Y1 0
+#define U  1
+#define Y2 2
+#define V  3
 
 pthread_mutex_t count_mutex     = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  condition_var   = PTHREAD_COND_INITIALIZER;
@@ -35,8 +61,170 @@ main() {
 // Write numbers 1-3 and 8-10 as permitted by parserthread()
 
 void *camthread(void * arg) {
-   for(;;)
-   {
+    int input=0;
+    Camera cam("/dev/video0", IMAGE_WIDTH, IMAGE_HEIGHT);
+	
+    cam.setInput(input);
+
+
+    IplImage* iply,*iplu,*iplv;
+    iply= cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
+    iplu= cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
+    iplv= cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
+    cvZero(iply);
+    cvZero(iplu);
+    cvZero(iplv);
+    IplImage* imgOrange = cvCreateImage(cvGetSize(iply), 8, 1);
+    IplImage* imgBlue   = cvCreateImage(cvGetSize(iply), 8, 1);
+    IplImage* imgYellow = cvCreateImage(cvGetSize(iply), 8, 1);
+#ifdef DEBUG
+    cvNamedWindow( "result Y", 0 );
+    cvNamedWindow( "result U", 0 );
+    cvNamedWindow( "result V", 0 );
+    cvNamedWindow( "result YUV", 0 );
+    cvNamedWindow( "orange", 0 );
+    cvNamedWindow( "blue", 0 );
+    cvNamedWindow( "yellow", 0 );
+    cvStartWindowThread(); 
+    IplImage*imgYUV= cvCreateImage(cvGetSize(iply), 8, 3);
+    cvSetMouseCallback("result YUV",my_mouse_callback,(void*) imgYUV);
+#endif
+    for(;;) {
+	unsigned char* ptr = cam.Update();
+	int i,j;
+	
+	int image_size = IMAGE_HEIGHT*IMAGE_WIDTH;
+
+	/* 
+         * For each input pixel we do have 2 bytes of data. But we read them in 
+         * groups of four because of YUYV format.
+         * i represent absolute number of pixel, j is byte.
+         */
+       	for(i=0,j=0;j<(IMAGE_WIDTH*IMAGE_HEIGHT*2) ; i+=2,j+=4) {
+
+	        iply->imageData[i  ] = ptr[j+Y1];
+                iply->imageData[i+1] = ptr[j+Y2];
+		/* U channel */
+	        iplu->imageData[i  ] = ptr[j+U];
+                iplu->imageData[i+1] = ptr[j+U];
+                       /* V channel */
+	        iplv->imageData[i  ] = ptr[j+V];
+                iplv->imageData[i+1] = ptr[j+V];
+	}
+	//double minVal,maxVal;
+#ifdef DEBUG 
+	cvMerge(iply,iplu ,iplv , NULL, imgYUV);
+        cvInRangeS(imgYUV, cvScalar( 55,  65, 152), cvScalar(203, 109, 199), imgOrange);
+        cvInRangeS(imgYUV, cvScalar( 0, 100,  115), cvScalar(40, 133, 128), imgBlue  );
+        cvInRangeS(imgYUV, cvScalar(101,  83, 123), cvScalar(155, 114, 142), imgYellow);
+        IplImage *labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
+#endif
+#if 0
+        unsigned int result;
+
+
+
+// Orange
+	result=cvLabel(imgOrange, labelImg, blobs);
+        cvFilterByArea(blobs, 15, 1000000);
+        CvLabel label=cvLargestBlob(blobs);
+        if(label!=0) {
+		// Delete all blobs except the largest
+          	cvFilterByLabel(blobs, label);
+		if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
+	        	printf("largest orange blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+				//blobs.begin()->second->label="orange";
+		}
+        }
+        cvRenderBlobs(labelImg, blobs, imgYUV, imgYUV,CV_BLOB_RENDER_BOUNDING_BOX);
+        cvUpdateTracks(blobs, tracks_o, 200., 5);
+        cvRenderTracks(tracks_o, imgYUV, imgYUV, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
+
+// Blue
+//		result=cvLabel(imgBlue, labelImg, blobs);
+
+//assert(0);
+                cvFilterByArea(blobs, 15, 1000000);
+                label=cvLargestBlob(blobs);
+                if(label!=0) {
+			// Delete all blobs except the largest
+			cvFilterByLabel(blobs, label);
+			if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
+		            printf("largest blue blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+			    //blobs.begin()->second->label="orange";
+			}
+                 }
+                cvRenderBlobs(labelImg, blobs, imgYUV, imgYUV,CV_BLOB_RENDER_BOUNDING_BOX);
+                cvUpdateTracks(blobs, tracks_b, 200., 5);
+                cvRenderTracks(tracks_b, imgYUV, imgYUV, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
+
+
+
+
+		for (CvBlobs::const_iterator it=blobs.begin(); it!=blobs.end(); ++it) {
+			//printf("res %d minx %d,miny %d centroid %.1fx%.1f\n",result,it->second->minx,it->second->miny,it->second->centroid.x,it->second->centroid.y);
+        	}
+
+		/*cvMinMaxLoc( const CvArr* A, double* minVal, double* maxVal,
+                  CvPoint* minLoc, CvPoint* maxLoc, const CvArr* mask=0 ); */
+		//find_circles(iply);
+
+#ifdef DEBUG
+                double hScale=0.7;
+                double vScale=0.7;
+                int    lineWidth=1;
+                CvFont font;
+                cvInitFont(&font,CV_FONT_HERSHEY_SIMPLEX, hScale,vScale,0,lineWidth,0);
+#endif
+                for (i=0; circles_st[i].x_in_picture != -1; i++) {
+#ifdef DEBUG
+                    //char buf[256];
+#endif
+                    tyros_camera::Object o;
+
+                    o.vector.x=circles_st[i].x_in_picture;
+                    o.vector.y=circles_st[i].y_in_picture;
+                    o.vector.z=i;
+                    o.certainity=i;
+                    o.type="Ball";
+                    msg.object.push_back(o);
+#ifdef DEBUG
+#if 0
+                    printf("Circle[%d] x:%d y:%d r:%d\n", i, circles_st[i].x_in_picture, circles_st[i].y_in_picture, circles_st[i].r_in_picture);
+                    printf("Circle[%d] real: x:%lf y:%lf r:%lf\n", i, circles_st[i].x_from_robot, circles_st[i].y_from_robot, circles_st[i].r_from_robot);
+//                  cvCircle(iply[devnum], cvPoint(cvRound(circles[i].x_in_picture), cvRound(circles[i].y_in_picture)), 3, CV_RGB(0,255,0), -1, 8, 0);
+                    cvCircle(iply, cvPoint(cvRound(circles_st[i].x_in_picture), cvRound(circles_st[i].y_in_picture)), cvRound(circles_st[i].r_in_picture), CV_RGB(0,255,0), 3, 8, 0);
+
+                    sprintf(buf, "%d x:%d y:%d r:%d", i, circles_st[i].x_in_picture, circles_st[i].y_in_picture, circles_st[i].r_in_picture);
+                    cvPutText (iply,buf,cvPoint(circles_st[i].x_in_picture-110,circles_st[i].y_in_picture+circles_st[i].r_in_picture*2), &font, cvScalarAll(255));
+                    sprintf(buf, "%d x: %.1lf y: %.1lf r: %.1lf", i, circles_st[i].x_from_robot, circles_st[i].y_from_robot, circles_st[i].r_from_robot);
+                    cvPutText (iply,buf,cvPoint(circles_st[i].x_in_picture-110,circles_st[i].y_in_picture+circles_st[i].r_in_picture*2+20), &font, cvScalarAll(255));
+#endif 
+#endif
+                }
+
+#endif
+#ifdef DEBUG
+/*	        if( drawing_box ) {
+			draw_box( iply, box );
+		}
+ */               cvShowImage( "result Y", iply );
+                cvShowImage( "result U", iplu );
+                cvShowImage( "result V", iplv );
+                cvShowImage( "result YUV", imgYUV );
+                cvShowImage( "orange", imgOrange);
+                cvShowImage( "blue", imgBlue);
+                cvShowImage( "yellow", imgYellow);
+		cvWaitKey(10);
+		cvReleaseImage(&labelImg);
+#endif
+	}
+#ifdef DEBUG
+        cvReleaseImage(&iply);
+        cvReleaseImage(&iplu);
+        cvReleaseImage(&iplv);
+#endif
+#if 0
       // Lock mutex and then wait for signal to relase mutex
       pthread_mutex_lock( &count_mutex );
 
@@ -49,15 +237,14 @@ void *camthread(void * arg) {
       pthread_mutex_unlock( &count_mutex );
 
       if(count >= COUNT_DONE) return(NULL);
-    }
+#endif
 }
 
 // Write numbers 4-7
 
-void *parserthread(void * arg)
-{
-    for(;;)
-    {
+void *parserthread(void * arg) {
+    for(;;) {
+#if 0
        pthread_mutex_lock( &count_mutex );
 
        if( count < COUNT_HALT1 || count > COUNT_HALT2 )
@@ -76,6 +263,7 @@ void *parserthread(void * arg)
        pthread_mutex_unlock( &count_mutex );
 
        if(count >= COUNT_DONE) return(NULL);
+#endif
     }
-
 }
+
