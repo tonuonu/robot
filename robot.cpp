@@ -32,6 +32,7 @@
 #include <cvblob.h>
 #include "libcam.h"
 
+using namespace cvb;
 
 #define IMAGE_WIDTH 640
 #define IMAGE_HEIGHT 480
@@ -248,17 +249,17 @@ void *camthread(void * arg) {
 	cvMerge(iply,iplu ,iplv , NULL, imgYUV);
 	cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
 
-        cvInRangeS(imgYUV, cvScalar(ball[0],ball[1],ball[2]), cvScalar(ball[3],ball[4],ball[5]), imgBall);
-        cvInRangeS(imgYUV, cvScalar( 0, 100,  115), cvScalar(40, 133, 128), imgGate  );
-        cvInRangeS(imgYUV, cvScalar(101,  83, 123), cvScalar(155, 114, 142), imgMyGate);
+        cvInRangeS(imgYUV, cvScalar(ball[0]  ,ball[1]  ,ball[2]  ), cvScalar(ball[3]  ,ball[4]  ,ball[5]  ), imgBall  );
+        cvInRangeS(imgYUV, cvScalar(gate[0]  ,gate[1]  ,gate[2]  ), cvScalar(gate[3]  ,gate[4]  ,gate[5]  ), imgGate  );
+        cvInRangeS(imgYUV, cvScalar(mygate[0],mygate[1],mygate[2]), cvScalar(mygate[3],mygate[4],mygate[5]), imgMyGate);
         IplImage *labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
 #endif
-#if 0
         unsigned int result;
 
-
-
 // Orange
+        CvBlobs blobs;
+        CvTracks tracks_o;
+
 	result=cvLabel(imgBall, labelImg, blobs);
         cvFilterByArea(blobs, 15, 1000000);
         CvLabel label=cvLargestBlob(blobs);
@@ -270,10 +271,11 @@ void *camthread(void * arg) {
 				//blobs.begin()->second->label="orange";
 		}
         }
-        cvRenderBlobs(labelImg, blobs, imgYUV, imgYUV,CV_BLOB_RENDER_BOUNDING_BOX);
+        cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
         cvUpdateTracks(blobs, tracks_o, 200., 5);
-        cvRenderTracks(tracks_o, imgYUV, imgYUV, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
+        cvRenderTracks(tracks_o, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
 
+#if 0
 // Blue
 //		result=cvLabel(imgGate, labelImg, blobs);
 
