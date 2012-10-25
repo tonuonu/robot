@@ -21,6 +21,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>  /* UNIX standard function definitions */
+#include <fcntl.h>   /* File control definitions */
+#include <errno.h>   /* Error number definitions */
+#include <termios.h> /* POSIX terminal control definitions */
+
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
 #include <cvblob.h>
@@ -94,6 +99,32 @@ void my_mouse_callback(int event, int x, int y, int flags, void* param) {
     }
 }
 
+int fd=-1;
+
+int
+open_port(void){
+        struct termios tio;
+        memset(&tio,0,sizeof(tio));
+        tio.c_iflag=0;
+        tio.c_oflag=0;
+        tio.c_cflag=CS8|CREAD|CLOCAL;           // 8n1, see termios.h for more information
+        tio.c_lflag=0;
+        tio.c_cc[VMIN]=1;
+        tio.c_cc[VTIME]=5;
+	fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NDELAY);
+	if (fd == -1) {
+	    printf("open_port: Unable to open /dev/ttyUSB0\n");
+            sleep(1);
+	} else {
+	    printf("open_port: opened /dev/ttyUSB0\n");
+	    fcntl(fd, F_SETFL, 0);
+            cfsetospeed(&tio,B115200);            // 115200 baud
+            cfsetispeed(&tio,B115200);            // 115200 baud
+	}
+   //     fcntl(fd,F_SETFL,FNDELAY); // Make read() call nonblocking
+	return (fd);
+}
+
 main() {
    pthread_t thread1, thread2;
 
@@ -108,14 +139,11 @@ main() {
    exit(0);
 }
 
-// Write numbers 1-3 and 8-10 as permitted by parserthread()
-
 void *camthread(void * arg) {
     int input=0;
     Camera cam("/dev/video0", IMAGE_WIDTH, IMAGE_HEIGHT);
 	
     cam.setInput(input);
-
 
     IplImage* iply,*iplu,*iplv;
     iply= cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
@@ -132,11 +160,13 @@ void *camthread(void * arg) {
     cvNamedWindow( "result U", 0 );
     cvNamedWindow( "result V", 0 );
     cvNamedWindow( "result YUV", 0 );
+    cvNamedWindow( "result BGR", 0 );
     cvNamedWindow( "orange", 0 );
     cvNamedWindow( "blue", 0 );
     cvNamedWindow( "yellow", 0 );
     cvStartWindowThread(); 
     IplImage*imgYUV= cvCreateImage(cvGetSize(iply), 8, 3);
+    IplImage*imgBGR= cvCreateImage(cvGetSize(iply), 8, 3);
     cvSetMouseCallback("result YUV",my_mouse_callback,(void*) imgYUV);
 #endif
     for(;;) {
@@ -163,7 +193,10 @@ void *camthread(void * arg) {
 	}
 	//double minVal,maxVal;
 #ifdef DEBUG 
+	cvZero(imgYUV);
 	cvMerge(iply,iplu ,iplv , NULL, imgYUV);
+	cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
+
         cvInRangeS(imgYUV, cvScalar( 55,  65, 152), cvScalar(203, 109, 199), imgOrange);
         cvInRangeS(imgYUV, cvScalar( 0, 100,  115), cvScalar(40, 133, 128), imgBlue  );
         cvInRangeS(imgYUV, cvScalar(101,  83, 123), cvScalar(155, 114, 142), imgYellow);
@@ -262,10 +295,11 @@ void *camthread(void * arg) {
                 cvShowImage( "result U", iplu );
                 cvShowImage( "result V", iplv );
                 cvShowImage( "result YUV", imgYUV );
+                cvShowImage( "result BGR", imgBGR );
                 cvShowImage( "orange", imgOrange);
                 cvShowImage( "blue", imgBlue);
                 cvShowImage( "yellow", imgYellow);
-		cvWaitKey(10);
+	//	cvWaitKey(10);
 		cvReleaseImage(&labelImg);
 #endif
 	}
@@ -294,6 +328,34 @@ void *camthread(void * arg) {
 
 void *parserthread(void * arg) {
     for(;;) {
+
+    if(0 > fd) {
+        //printf("/dev/ttyUSB0 is not yet open. Trying to fix this...\n");
+        open_port();
+    } 
+    int len=0;
+    if(0 > fd)  {
+        //printf("/dev/ttyUSB0 is still not open?! Now I give up!\n");
+    } else {
+	char buf[256];
+	int nbytes=read(fd,buf,sizeof(buf));
+	char *p=strchr(buf,27);
+	int offset=p-buf;
+        if(offset<200 && p[1]=='[' && p[4]==';' && p[6]=='H') {
+            char *colonptr=strchr(&p[7],':');
+	    if(colonptr>0) {
+#if 0
+	        *colonptr=0;
+	        //printf("%s\n",&p[7]);
+		const char **kw=keywords;
+		int kwnum=0;
+		while(*kw) {
+		    if(strcmp(*kw,&p[7])==0) {
+			    printf("->Matched '%s'\n",*kw);
+#endif
+             }
+        }
+    }
 #if 0
        pthread_mutex_lock( &count_mutex );
 
