@@ -51,7 +51,7 @@ int  count = 0;
 #define COUNT_DONE  10
 #define COUNT_HALT1  3
 #define COUNT_HALT2  6
-
+IplImage*imgYUV;
 
 CvRect box;
 bool drawing_box = false;
@@ -79,7 +79,7 @@ void my_mouse_callback(int event, int x, int y, int flags, void* param) {
             setroi= false;
             box = cvRect(x, y, 0, 0);
 	    if(x<=IMAGE_WIDTH && y<=IMAGE_HEIGHT) {
-	        CvScalar pixel=cvGet2D(image,y,x);
+	        CvScalar pixel=cvGet2D(imgYUV,y,x);
 	        printf("coord x:%3d y:%3d color Y:%3.0f :U%3.0f V:%3.0f\n",x,y,pixel.val[0],pixel.val[1],pixel.val[2]);
             }
         }
@@ -128,6 +128,11 @@ open_port(void){
 	return (fd);
 }
 
+
+int ball[6]={0,0,0,0,0,0};
+int gate[6]={0,0,0,0,0,0};
+int mygate[6]={0,0,0,0,0,0};
+
 main() {
     config_t cfg, *cf;
     pthread_t thread1, thread2;
@@ -145,21 +150,30 @@ main() {
 
     retries=config_lookup(cf, "colors.ball");
     count = config_setting_length(retries);
- //   printf("I have %d retries:\n", count);
+    if(count!=6) {
+        printf("Error! Got %d arguments instead of 6\n", count);
+	exit(1);
+    }
     for (int n = 0; n < count; n++) {
-        printf("\t#%d. %ld\n", n + 1,config_setting_get_int_elem(retries, n));
+        ball[n]=config_setting_get_int_elem(retries, n);
     }
     retries=config_lookup(cf, "colors.mygate");
     count = config_setting_length(retries);
- //   printf("I have %d retries:\n", count);
+    if(count!=6) {
+        printf("Error! Got %d arguments instead of 6\n", count);
+	exit(1);
+    }
     for (int n = 0; n < count; n++) {
-        printf("\t#%d. %ld\n", n + 1,config_setting_get_int_elem(retries, n));
+        mygate[n]=config_setting_get_int_elem(retries, n);
     }
     retries=config_lookup(cf, "colors.gate");
     count = config_setting_length(retries);
- //   printf("I have %d retries:\n", count);
+    if(count!=6) {
+        printf("Error! Got %d arguments instead of 6\n", count);
+	exit(1);
+    }
     for (int n = 0; n < count; n++) {
-        printf("\t#%d. %ld\n", n + 1,config_setting_get_int_elem(retries, n));
+        gate[n]=config_setting_get_int_elem(retries, n);
     }
    
     config_destroy(cf);
@@ -188,22 +202,24 @@ void *camthread(void * arg) {
     cvZero(iply);
     cvZero(iplu);
     cvZero(iplv);
-    IplImage* imgOrange = cvCreateImage(cvGetSize(iply), 8, 1);
-    IplImage* imgBlue   = cvCreateImage(cvGetSize(iply), 8, 1);
-    IplImage* imgYellow = cvCreateImage(cvGetSize(iply), 8, 1);
+    IplImage* imgBall = cvCreateImage(cvGetSize(iply), 8, 1);
+    IplImage* imgGate   = cvCreateImage(cvGetSize(iply), 8, 1);
+    IplImage* imgMyGate = cvCreateImage(cvGetSize(iply), 8, 1);
 #ifdef DEBUG
+/*
     cvNamedWindow( "result Y", 0 );
     cvNamedWindow( "result U", 0 );
     cvNamedWindow( "result V", 0 );
-    cvNamedWindow( "result YUV", 0 );
+*/
     cvNamedWindow( "result BGR", 0 );
-    cvNamedWindow( "orange", 0 );
-    cvNamedWindow( "blue", 0 );
-    cvNamedWindow( "yellow", 0 );
+    cvNamedWindow( "result YUV", 0 );
+    cvNamedWindow( "ball", 0 );
+    cvNamedWindow( "gate", 0 );
+    cvNamedWindow( "mygate", 0 );
     cvStartWindowThread(); 
-    IplImage*imgYUV= cvCreateImage(cvGetSize(iply), 8, 3);
+    imgYUV= cvCreateImage(cvGetSize(iply), 8, 3);
     IplImage*imgBGR= cvCreateImage(cvGetSize(iply), 8, 3);
-    cvSetMouseCallback("result YUV",my_mouse_callback,(void*) imgYUV);
+    cvSetMouseCallback("result BGR",my_mouse_callback,(void*) imgBGR);
 #endif
     for(;;) {
 	unsigned char* ptr = cam.Update();
@@ -229,13 +245,12 @@ void *camthread(void * arg) {
 	}
 	//double minVal,maxVal;
 #ifdef DEBUG 
-	cvZero(imgYUV);
 	cvMerge(iply,iplu ,iplv , NULL, imgYUV);
 	cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
 
-        cvInRangeS(imgYUV, cvScalar( 55,  65, 152), cvScalar(203, 109, 199), imgOrange);
-        cvInRangeS(imgYUV, cvScalar( 0, 100,  115), cvScalar(40, 133, 128), imgBlue  );
-        cvInRangeS(imgYUV, cvScalar(101,  83, 123), cvScalar(155, 114, 142), imgYellow);
+        cvInRangeS(imgYUV, cvScalar(ball[0],ball[1],ball[2]), cvScalar(ball[3],ball[4],ball[5]), imgBall);
+        cvInRangeS(imgYUV, cvScalar( 0, 100,  115), cvScalar(40, 133, 128), imgGate  );
+        cvInRangeS(imgYUV, cvScalar(101,  83, 123), cvScalar(155, 114, 142), imgMyGate);
         IplImage *labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
 #endif
 #if 0
@@ -244,7 +259,7 @@ void *camthread(void * arg) {
 
 
 // Orange
-	result=cvLabel(imgOrange, labelImg, blobs);
+	result=cvLabel(imgBall, labelImg, blobs);
         cvFilterByArea(blobs, 15, 1000000);
         CvLabel label=cvLargestBlob(blobs);
         if(label!=0) {
@@ -260,7 +275,7 @@ void *camthread(void * arg) {
         cvRenderTracks(tracks_o, imgYUV, imgYUV, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
 
 // Blue
-//		result=cvLabel(imgBlue, labelImg, blobs);
+//		result=cvLabel(imgGate, labelImg, blobs);
 
 //assert(0);
                 cvFilterByArea(blobs, 15, 1000000);
@@ -327,14 +342,18 @@ void *camthread(void * arg) {
 /*	        if( drawing_box ) {
 			draw_box( iply, box );
 		}
- */               cvShowImage( "result Y", iply );
+ */
+
+/*
+                cvShowImage( "result Y", iply );
                 cvShowImage( "result U", iplu );
                 cvShowImage( "result V", iplv );
+*/
                 cvShowImage( "result YUV", imgYUV );
                 cvShowImage( "result BGR", imgBGR );
-                cvShowImage( "orange", imgOrange);
-                cvShowImage( "blue", imgBlue);
-                cvShowImage( "yellow", imgYellow);
+                cvShowImage( "ball", imgBall);
+                cvShowImage( "gate", imgGate);
+                cvShowImage( "mygate", imgMyGate);
 	//	cvWaitKey(10);
 		cvReleaseImage(&labelImg);
 #endif
