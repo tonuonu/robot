@@ -26,10 +26,13 @@
 #include <errno.h>   /* Error number definitions */
 #include <termios.h> /* POSIX terminal control definitions */
 
+#include <libconfig.h>
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
 #include <cvblob.h>
 #include "libcam.h"
+
+
 #define IMAGE_WIDTH 640
 #define IMAGE_HEIGHT 480
 // YUYV byte order
@@ -126,17 +129,50 @@ open_port(void){
 }
 
 main() {
-   pthread_t thread1, thread2;
+    config_t cfg, *cf;
+    pthread_t thread1, thread2;
+    const config_setting_t *retries;
 
-   pthread_create( &thread1, NULL, &camthread, NULL);
-   pthread_create( &thread2, NULL, &parserthread, NULL);
+    cf = &cfg;
+    config_init(cf);
+    if (!config_read_file(cf, "robot.conf")) {
+        fprintf(stderr, "%d - %s\n",
+            config_error_line(cf),
+            config_error_text(cf));
+        config_destroy(cf);
+        return(EXIT_FAILURE);
+    }
 
-   pthread_join( thread1, NULL);
-   pthread_join( thread2, NULL);
+    retries=config_lookup(cf, "colors.ball");
+    count = config_setting_length(retries);
+ //   printf("I have %d retries:\n", count);
+    for (int n = 0; n < count; n++) {
+        printf("\t#%d. %ld\n", n + 1,config_setting_get_int_elem(retries, n));
+    }
+    retries=config_lookup(cf, "colors.mygate");
+    count = config_setting_length(retries);
+ //   printf("I have %d retries:\n", count);
+    for (int n = 0; n < count; n++) {
+        printf("\t#%d. %ld\n", n + 1,config_setting_get_int_elem(retries, n));
+    }
+    retries=config_lookup(cf, "colors.gate");
+    count = config_setting_length(retries);
+ //   printf("I have %d retries:\n", count);
+    for (int n = 0; n < count; n++) {
+        printf("\t#%d. %ld\n", n + 1,config_setting_get_int_elem(retries, n));
+    }
+   
+    config_destroy(cf);
 
-   printf("Final count: %d\n",count);
+    pthread_create( &thread1, NULL, &camthread, NULL);
+    pthread_create( &thread2, NULL, &parserthread, NULL);
 
-   exit(0);
+    pthread_join( thread1, NULL);
+    pthread_join( thread2, NULL);
+
+    printf("Final count: %d\n",count);
+
+    exit(0);
 }
 
 void *camthread(void * arg) {
