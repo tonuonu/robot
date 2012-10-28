@@ -94,8 +94,7 @@ void my_mouse_callback(int event, int x, int y, int flags, void* param) {
     }
 }
 
-void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR) {
-    CvTracks tracks_b;
+void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR,CvTracks*tracks) {
     CvBlobs blobs;
     int result=cvLabel(needle, labelImg, blobs);
     // result=cvLabel(imgMyGate, labelImg, blobs);
@@ -117,11 +116,10 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
     }
     if(debug) {
         cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
-        cvUpdateTracks(blobs, tracks_b, 200., 5);
-        cvRenderTracks(tracks_b, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
+        cvUpdateTracks(blobs, *tracks, 200., 5);
+        cvRenderTracks(*tracks, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
     }
     cvReleaseBlobs(blobs);
-    cvReleaseTracks(tracks_b);
 }
 
 int ball[6]={0,0,0,0,0,0};
@@ -129,6 +127,9 @@ int gate[6]={0,0,0,0,0,0};
 int mygate[6]={0,0,0,0,0,0};
 
 void *camthread(void * arg) {
+    CvTracks tracks_ball;
+    CvTracks tracks_gate;
+    CvTracks tracks_mygate;
     IplImage* iply,*iplu,*iplv;
     IplImage* imgBall,*imgGate,*imgMyGate;
     IplImage* imgBGR;
@@ -168,24 +169,24 @@ void *camthread(void * arg) {
          * i represent absolute number of pixel, j is byte.
          */
         for(i=0,j=0;j<(IMAGE_WIDTH*IMAGE_HEIGHT*2) ; i+=2,j+=4) {
-
-                iply->imageData[i  ] = ptr[j+Y1];
-                iply->imageData[i+1] = ptr[j+Y2];
-                /* U channel */
-                iplu->imageData[i  ] = ptr[j+U];
-                iplu->imageData[i+1] = ptr[j+U];
-                /* V channel */
-                iplv->imageData[i  ] = ptr[j+V];
-                iplv->imageData[i+1] = ptr[j+V];
+            /* Y channel */
+            iply->imageData[i  ] = ptr[j+Y1];
+            iply->imageData[i+1] = ptr[j+Y2];
+            /* U channel */
+            iplu->imageData[i  ] = ptr[j+U];
+            iplu->imageData[i+1] = ptr[j+U];
+            /* V channel */
+            iplv->imageData[i  ] = ptr[j+V];
+            iplv->imageData[i+1] = ptr[j+V];
         }
         //double minVal,maxVal;
         cvMerge(iply,iplu ,iplv , NULL, imgYUV);
-	cvSmooth(imgYUV,imgYUV,CV_MEDIAN,7,7);
+        cvCircle(imgYUV, cvPoint((int)centerx,(int)centery), 80, cvScalarAll(0), 80);
+	cvSmooth(imgYUV,imgYUV,CV_MEDIAN,5,5);
         labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
         if(debug) {
             cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
         }
-        cvCircle(imgYUV, cvPoint((int)centerx,(int)centery), 80, cvScalar(0,0,0), 60);
         cvInRangeS(imgYUV, cvScalar(ball[0]  ,ball[1]  ,ball[2]  ), 
                            cvScalar(ball[3]  ,ball[4]  ,ball[5]  ), imgBall  );
         cvInRangeS(imgYUV, cvScalar(gate[0]  ,gate[1]  ,gate[2]  ), 
@@ -193,12 +194,10 @@ void *camthread(void * arg) {
         cvInRangeS(imgYUV, cvScalar(mygate[0],mygate[1],mygate[2]), 
                            cvScalar(mygate[3],mygate[4],mygate[5]), imgMyGate);
 
-        detectblob("ball",imgBall,labelImg,imgBGR) ;
-        detectblob("gate",imgGate,labelImg,imgBGR) ;
-        detectblob("mygate",imgMyGate,labelImg,imgBGR) ;
+        detectblob("ball",imgBall,labelImg,imgBGR,&tracks_ball) ;
+        detectblob("gate",imgGate,labelImg,imgBGR,&tracks_gate) ;
+        detectblob("mygate",imgMyGate,labelImg,imgBGR,&tracks_mygate) ;
         if(debug) {
-            //cvCircle(imgBGR, cvPoint((int)centerx,(int)centery), 40, cvScalar(0,255,0), 10);
-            cvCircle(imgBGR, cvPoint((int)centerx,(int)centery), 80, cvScalar(0,0,0), 60);
             printf("x %ld y %ld\n",centerx,centery);
             /* if( drawing_box ) {
             draw_box( iply, box );
@@ -219,6 +218,9 @@ void *camthread(void * arg) {
     cvReleaseImage(&iply);
     cvReleaseImage(&iplu);
     cvReleaseImage(&iplv);
+    cvReleaseTracks(tracks_ball);
+    cvReleaseTracks(tracks_gate);
+    cvReleaseTracks(tracks_mygate);
 #endif
 #if 0
     // Lock mutex and then wait for signal to relase mutex
