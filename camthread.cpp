@@ -93,6 +93,28 @@ void my_mouse_callback(int event, int x, int y, int flags, void* param) {
     }
 }
 
+void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR) {
+    CvTracks tracks_b;
+    CvBlobs blobs;
+    int result=cvLabel(needle, labelImg, blobs);
+    // result=cvLabel(imgMyGate, labelImg, blobs);
+    cvFilterByArea(blobs, 5, 10000);
+    CvLabel label=cvLargestBlob(blobs);
+    if(label!=0) {
+        // Delete all blobs except the largest
+        cvFilterByLabel(blobs, label);
+        if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
+            printf("largest %s blob at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+            //blobs.begin()->second->label="orange";
+        }
+    }
+    if(debug) {
+        cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
+        cvUpdateTracks(blobs, tracks_b, 200., 5);
+        cvRenderTracks(tracks_b, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
+    }
+}
+
 
 int ball[6]={0,0,0,0,0,0};
 int gate[6]={0,0,0,0,0,0};
@@ -166,65 +188,9 @@ void *camthread(void * arg) {
         cvInRangeS(imgYUV, cvScalar(mygate[0],mygate[1],mygate[2]), 
                            cvScalar(mygate[3],mygate[4],mygate[5]), imgMyGate);
 
-// Orange
-        CvBlobs blobs;
-        CvTracks tracks_o;
-        CvTracks tracks_b;
-        unsigned int result;
-        result=cvLabel(imgBall, labelImg, blobs);
-        cvFilterByArea(blobs, 5, 10000);
-        CvLabel label=cvLargestBlob(blobs);
-        if(label!=0) {
-            // Delete all blobs except the largest
-            cvFilterByLabel(blobs, label);
-            if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
-                printf("largest ball blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
-                                //blobs.begin()->second->label="orange";
-            }
-
-        }
-        if(debug) {
-            cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
-            cvUpdateTracks(blobs, tracks_o, 200., 5);
-            cvRenderTracks(tracks_o, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
-
-        }
-        result=cvLabel(imgGate, labelImg, blobs);
-        cvFilterByArea(blobs, 5, 10000);
-        label=cvLargestBlob(blobs);
-        if(label!=0) {
-            // Delete all blobs except the largest
-            cvFilterByLabel(blobs, label);
-            if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
-                printf("largest gate blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
-                                //blobs.begin()->second->label="orange";
-            }
-        }
-        if(debug) {
-            cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
-            cvUpdateTracks(blobs, tracks_b, 200., 5);
-            cvRenderTracks(tracks_b, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
-        }
-
-        result=cvLabel(imgMyGate, labelImg, blobs);
-        cvFilterByArea(blobs, 5, 10000);
-        label=cvLargestBlob(blobs);
-        if(label!=0) {
-            // Delete all blobs except the largest
-            cvFilterByLabel(blobs, label);
-            if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
-                printf("largest mygate blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
-                                //blobs.begin()->second->label="orange";
-            }
-        }
-        if(debug) {
-            cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
-            cvUpdateTracks(blobs, tracks_b, 200., 5);
-            cvRenderTracks(tracks_b, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
-        }
-
-
-
+        detectblob("ball",imgBall,labelImg,imgBGR) ;
+        detectblob("gate",imgGate,labelImg,imgBGR) ;
+        detectblob("mygate",imgMyGate,labelImg,imgBGR) ;
         if(debug) {
             /* if( drawing_box ) {
             draw_box( iply, box );
