@@ -172,16 +172,13 @@ void *camthread(void * arg) {
         CvTracks tracks_b;
         unsigned int result;
         result=cvLabel(imgBall, labelImg, blobs);
-        cvFilterByArea(blobs, 5, 1000);
+        cvFilterByArea(blobs, 5, 10000);
         CvLabel label=cvLargestBlob(blobs);
         if(label!=0) {
             // Delete all blobs except the largest
             cvFilterByLabel(blobs, label);
-
-
-            cvFilterByLabel(blobs, label);
             if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
-                printf("largest orange blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+                printf("largest ball blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
                                 //blobs.begin()->second->label="orange";
             }
 
@@ -192,17 +189,43 @@ void *camthread(void * arg) {
             cvRenderTracks(tracks_o, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
 
         }
-        cvFilterByArea(blobs, 15, 1000000);
+        result=cvLabel(imgGate, labelImg, blobs);
+        cvFilterByArea(blobs, 5, 10000);
         label=cvLargestBlob(blobs);
         if(label!=0) {
             // Delete all blobs except the largest
             cvFilterByLabel(blobs, label);
+            if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
+                printf("largest gate blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+                                //blobs.begin()->second->label="orange";
+            }
         }
         if(debug) {
             cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
             cvUpdateTracks(blobs, tracks_b, 200., 5);
             cvRenderTracks(tracks_b, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
+        }
 
+        result=cvLabel(imgMyGate, labelImg, blobs);
+        cvFilterByArea(blobs, 5, 10000);
+        label=cvLargestBlob(blobs);
+        if(label!=0) {
+            // Delete all blobs except the largest
+            cvFilterByLabel(blobs, label);
+            if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
+                printf("largest mygate blob at %.1f %.1f\n",blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+                                //blobs.begin()->second->label="orange";
+            }
+        }
+        if(debug) {
+            cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
+            cvUpdateTracks(blobs, tracks_b, 200., 5);
+            cvRenderTracks(tracks_b, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
+        }
+
+
+
+        if(debug) {
             /* if( drawing_box ) {
             draw_box( iply, box );
             }
