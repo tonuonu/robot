@@ -44,6 +44,8 @@ void *commthread(void * arg);
 
 int  count = 0;
 int  debug = 0;
+long int centerx = 0;
+long int centery = 0;
 #define COUNT_DONE  10
 #define COUNT_HALT1  3
 #define COUNT_HALT2  6
@@ -65,7 +67,9 @@ main(int argc, char *argv[]) {
         config_destroy(cf);
         return(EXIT_FAILURE);
     }
-
+    
+    config_lookup_int(cf, "center.x",&centerx);
+    config_lookup_int(cf, "center.y",&centery);
     retries=config_lookup(cf, "colors.ball");
     count = config_setting_length(retries);
     if(count!=6) {
@@ -97,7 +101,7 @@ main(int argc, char *argv[]) {
     config_destroy(cf);
 
     pthread_create( &thread1, NULL, &camthread, NULL);
-    pthread_create( &thread2, NULL, &commthread, NULL);
+ //   pthread_create( &thread2, NULL, &commthread, NULL);
 
     pthread_join( thread1, NULL);
     pthread_join( thread2, NULL);

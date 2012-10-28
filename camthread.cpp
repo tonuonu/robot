@@ -47,6 +47,7 @@ IplImage*imgYUV;
 CvRect box;
 bool drawing_box = false;
 bool setroi = false;
+extern long int centerx,centery;
 
 void draw_box( IplImage* img, CvRect rect ) {
     cvRectangle (img,
@@ -103,9 +104,16 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
     if(label!=0) {
         // Delete all blobs except the largest
         cvFilterByLabel(blobs, label);
-//        if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
-            printf("%s at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
- //       }
+        // if(blobs.begin()->second->maxy-blobs.begin()->second->miny < 50) { // Cut off too high objects
+        if(debug) {
+            CvFont font;
+            double hScale=1.0;
+            double vScale=1.0;
+            int    lineWidth=1;
+            cvInitFont(&font,CV_FONT_HERSHEY_SIMPLEX|CV_FONT_ITALIC, hScale,vScale,0,lineWidth);
+            cvPutText (imgBGR,txt,cvPoint(blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y), &font, cvScalar(255,255,0));
+        }
+        printf("%s at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
     }
     if(debug) {
         cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
@@ -150,11 +158,10 @@ void *camthread(void * arg) {
         cvSetMouseCallback("result BGR",my_mouse_callback,(void*) imgBGR);
     }
     for(;;) {
-        unsigned char* ptr = cam.Update();
+        IplImage *labelImg;
         int i,j;
-        
         int image_size = IMAGE_HEIGHT*IMAGE_WIDTH;
-
+        unsigned char* ptr = cam.Update();
         /* 
          * For each input pixel we do have 2 bytes of data. But we read them in 
          * groups of four because of YUYV format.
@@ -172,12 +179,13 @@ void *camthread(void * arg) {
                 iplv->imageData[i+1] = ptr[j+V];
         }
         //double minVal,maxVal;
-        IplImage *labelImg;
         cvMerge(iply,iplu ,iplv , NULL, imgYUV);
+	cvSmooth(imgYUV,imgYUV,CV_MEDIAN,7,7);
         labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
         if(debug) {
             cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
         }
+        cvCircle(imgYUV, cvPoint((int)centerx,(int)centery), 80, cvScalar(0,0,0), 60);
         cvInRangeS(imgYUV, cvScalar(ball[0]  ,ball[1]  ,ball[2]  ), 
                            cvScalar(ball[3]  ,ball[4]  ,ball[5]  ), imgBall  );
         cvInRangeS(imgYUV, cvScalar(gate[0]  ,gate[1]  ,gate[2]  ), 
@@ -188,12 +196,13 @@ void *camthread(void * arg) {
         detectblob("ball",imgBall,labelImg,imgBGR) ;
         detectblob("gate",imgGate,labelImg,imgBGR) ;
         detectblob("mygate",imgMyGate,labelImg,imgBGR) ;
-
         if(debug) {
+            //cvCircle(imgBGR, cvPoint((int)centerx,(int)centery), 40, cvScalar(0,255,0), 10);
+            cvCircle(imgBGR, cvPoint((int)centerx,(int)centery), 80, cvScalar(0,0,0), 60);
+            printf("x %ld y %ld\n",centerx,centery);
             /* if( drawing_box ) {
             draw_box( iply, box );
             } */
-
 #ifdef DEBUG
             cvShowImage( "result Y", iply );
             cvShowImage( "result U", iplu );
