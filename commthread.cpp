@@ -32,6 +32,11 @@
 #include <cvblob.h>
 #include "libcam.h"
 
+#include "parser.hh"
+
+void
+parse_equation(char *) ;
+
 int fd=-1;
 
 #define PORT "/dev/ttyUSB0"
@@ -53,63 +58,71 @@ open_port(void){
     } else {
         printf("open_port: opened %s\n",PORT);
         fcntl(fd, F_SETFL, 0);
-        cfsetospeed(&tio,B115200);            // 115200 baud
-        cfsetispeed(&tio,B115200);            // 115200 baud
+        cfsetospeed(&tio,B57600);            // 115200 baud
+        cfsetispeed(&tio,B57600);            // 115200 baud
     }
-   //     fcntl(fd,F_SETFL,FNDELAY); // Make read() call nonblocking
-	return (fd);
+    // fcntl(fd,F_SETFL,FNDELAY); // Make read() call nonblocking
+    return (fd);
 }
 
 
 void *commthread(void * arg) {
     for(;;) {
 
-    if(fd < 0) {
-        //printf("/dev/ttyUSB0 is not yet open. Trying to fix this...\n");
-        open_port();
-    } 
-    int len=0;
-    if(fd < 0)  {
-        //printf("/dev/ttyUSB0 is still not open?! Now I give up!\n");
-    } else {
-	char buf[256];
-	int nbytes=read(fd,buf,sizeof(buf));
-	char *p=strchr(buf,27);
-	int offset=p-buf;
-        if(offset<200 && p[1]=='[' && p[4]==';' && p[6]=='H') {
-            char *colonptr=strchr(&p[7],':');
-	    if(colonptr>0) {
-#if 0
-	        *colonptr=0;
-	        //printf("%s\n",&p[7]);
-		const char **kw=keywords;
-		int kwnum=0;
-		while(*kw) {
-		    if(strcmp(*kw,&p[7])==0) {
-			    printf("->Matched '%s'\n",*kw);
-#endif
-             }
-        }
-    }
-#if 0
-       pthread_mutex_lock( &count_mutex );
+        if(fd < 0) {
+            //printf("/dev/ttyUSB0 is not yet open. Trying to fix this...\n");
+            open_port();
+        } 
+        int len=0;
+        if(fd < 0)  {
+            //printf("/dev/ttyUSB0 is still not open?! Now I give up!\n");
+        } else {
+	    char buf[256];
+	    int nbytes=read(fd,buf,sizeof(buf));
+            printf("read returned %d bytes\n",nbytes);
+/*	    char *p=strchr(buf,27);
+	    int offset=p-buf;
+            if(offset<200 && p[1]=='[' && p[4]==';' && p[6]=='H') {
+                char *colonptr=strchr(&p[7],':');
+                if(colonptr>0) {
+	            *colonptr=0;
+	            printf("%s\n",&p[7]);
+*/
 
-       if( count < COUNT_HALT1 || count > COUNT_HALT2 )
-       {
+parse_equation(buf);/*
+ // +2 on strlen is for the two extra '\0' characters
+    // needed by flex when scanning strings.
+    YY_BUFFER_STATE yybs = yy_scan_buffer(buf, strlen(buf)+2);
+    yy_switch_to_buffer(yybs);
+    yyparse();
+    yy_delete_buffer(yybs);
+*/
+#if 0
+const char **kw=keywords;
+int kwnum=0;
+while(*kw) {
+if(strcmp(*kw,&p[7])==0) {
+printf("->Matched '%s'\n",*kw);
+#endif
+  //              }
+           // }
+        }
+#if 0
+        pthread_mutex_lock( &count_mutex );
+
+        if( count < COUNT_HALT1 || count > COUNT_HALT2 ) {
           // Condition of if statement has been met. 
           // Signal to free waiting thread by freeing the mutex.
           // Note: camthread() is now permitted to modify "count".
           pthread_cond_signal( &condition_var );
-       }
-       else
-       {
+        } else {
           count++;
           printf("Counter value parserthread: %d\n",count);
-       }
+        }
 
-       pthread_mutex_unlock( &count_mutex );
+        pthread_mutex_unlock( &count_mutex );
 
-       if(count >= COUNT_DONE) return(NULL);
+        if(count >= COUNT_DONE) return(NULL);
 #endif
     }
 }
