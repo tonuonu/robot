@@ -34,7 +34,7 @@
 #include "image.h"
 #include "globals.h"
 
-        // YUYV byte order
+// YUYV byte order
 #define Y1 0
 #define U  1
 #define Y2 2
@@ -103,16 +103,18 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
     if(label!=0) {
         // Delete all blobs except the largest
         cvFilterByLabel(blobs, label);
-        if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
-            printf("largest %s blob at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+//        if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
+            printf("%s at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
             //blobs.begin()->second->label="orange";
-        }
+ //       }
     }
     if(debug) {
         cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
         cvUpdateTracks(blobs, tracks_b, 200., 5);
         cvRenderTracks(tracks_b, imgBGR, imgBGR, CV_TRACK_RENDER_ID|CV_TRACK_RENDER_BOUNDING_BOX);
     }
+    cvReleaseBlobs(blobs);
+    cvReleaseTracks(tracks_b);
 }
 
 
@@ -136,7 +138,7 @@ void *camthread(void * arg) {
     IplImage* imgBall = cvCreateImage(cvGetSize(iply), 8, 1);
     IplImage* imgGate   = cvCreateImage(cvGetSize(iply), 8, 1);
     IplImage* imgMyGate = cvCreateImage(cvGetSize(iply), 8, 1);
-    IplImage*imgBGR;
+    IplImage* imgBGR;
     imgYUV= cvCreateImage(cvGetSize(iply), 8, 3);
     if(debug) {
 #ifdef DEBUG
@@ -170,13 +172,12 @@ void *camthread(void * arg) {
                 /* U channel */
                 iplu->imageData[i  ] = ptr[j+U];
                 iplu->imageData[i+1] = ptr[j+U];
-                       /* V channel */
+                /* V channel */
                 iplv->imageData[i  ] = ptr[j+V];
                 iplv->imageData[i+1] = ptr[j+V];
         }
         //double minVal,maxVal;
-        IplImage *labelImg;
-        labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
+        IplImage *labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
         cvMerge(iply,iplu ,iplv , NULL, imgYUV);
         if(debug) {
             cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
@@ -191,11 +192,11 @@ void *camthread(void * arg) {
         detectblob("ball",imgBall,labelImg,imgBGR) ;
         detectblob("gate",imgGate,labelImg,imgBGR) ;
         detectblob("mygate",imgMyGate,labelImg,imgBGR) ;
+
         if(debug) {
             /* if( drawing_box ) {
             draw_box( iply, box );
-            }
-            */
+            } */
 
 #ifdef DEBUG
             cvShowImage( "result Y", iply );
@@ -208,7 +209,7 @@ void *camthread(void * arg) {
             cvShowImage( "mygate", imgMyGate);
             cvReleaseImage(&labelImg);
         }
-    }
+    } // for
 #ifdef DEBUG
     cvReleaseImage(&iply);
     cvReleaseImage(&iplu);
