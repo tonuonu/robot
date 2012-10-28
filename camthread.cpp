@@ -174,8 +174,8 @@ void *camthread(void * arg) {
         //double minVal,maxVal;
         IplImage *labelImg;
         cvMerge(iply,iplu ,iplv , NULL, imgYUV);
+        labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
         if(debug) {
-            labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
             cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
         }
         cvInRangeS(imgYUV, cvScalar(ball[0]  ,ball[1]  ,ball[2]  ), 
@@ -203,8 +203,8 @@ void *camthread(void * arg) {
             cvShowImage( "ball", imgBall);
             cvShowImage( "gate", imgGate);
             cvShowImage( "mygate", imgMyGate);
-            cvReleaseImage(&labelImg);
         }
+        cvReleaseImage(&labelImg);
     } // for
 #ifdef DEBUG
     cvReleaseImage(&iply);
