@@ -98,14 +98,13 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
     CvBlobs blobs;
     int result=cvLabel(needle, labelImg, blobs);
     // result=cvLabel(imgMyGate, labelImg, blobs);
-    cvFilterByArea(blobs, 5, 10000);
+    cvFilterByArea(blobs, 5, 1000);
     CvLabel label=cvLargestBlob(blobs);
     if(label!=0) {
         // Delete all blobs except the largest
         cvFilterByLabel(blobs, label);
 //        if(blobs.begin()->second->maxy - blobs.begin()->second->miny < 50) { // Cut off too high objects
             printf("%s at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
-            //blobs.begin()->second->label="orange";
  //       }
     }
     if(debug) {
@@ -117,29 +116,25 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
     cvReleaseTracks(tracks_b);
 }
 
-
 int ball[6]={0,0,0,0,0,0};
 int gate[6]={0,0,0,0,0,0};
 int mygate[6]={0,0,0,0,0,0};
 
 void *camthread(void * arg) {
+    IplImage* iply,*iplu,*iplv;
+    IplImage* imgBall,*imgGate,*imgMyGate;
+    IplImage* imgBGR;
     int input=0;
     Camera cam("/dev/video0", IMAGE_WIDTH, IMAGE_HEIGHT,15);
-        
     cam.setInput(input);
 
-    IplImage* iply,*iplu,*iplv;
-    iply= cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
-    iplu= cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
-    iplv= cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
-    cvZero(iply);
-    cvZero(iplu);
-    cvZero(iplv);
-    IplImage* imgBall = cvCreateImage(cvGetSize(iply), 8, 1);
-    IplImage* imgGate   = cvCreateImage(cvGetSize(iply), 8, 1);
-    IplImage* imgMyGate = cvCreateImage(cvGetSize(iply), 8, 1);
-    IplImage* imgBGR;
-    imgYUV= cvCreateImage(cvGetSize(iply), 8, 3);
+    iply      = cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
+    iplu      = cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
+    iplv      = cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
+    imgYUV    = cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 3);
+    imgBall   = cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
+    imgGate   = cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
+    imgMyGate = cvCreateImage(cvSize(IMAGE_WIDTH,IMAGE_HEIGHT), 8, 1);
     if(debug) {
 #ifdef DEBUG
         cvNamedWindow( "result Y", 0 );
@@ -177,9 +172,10 @@ void *camthread(void * arg) {
                 iplv->imageData[i+1] = ptr[j+V];
         }
         //double minVal,maxVal;
-        IplImage *labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
+        IplImage *labelImg;
         cvMerge(iply,iplu ,iplv , NULL, imgYUV);
         if(debug) {
+            labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
             cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
         }
         cvInRangeS(imgYUV, cvScalar(ball[0]  ,ball[1]  ,ball[2]  ), 
