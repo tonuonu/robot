@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <string.h>
+
 void 
 yyerror(const char *str) {
     fprintf(stderr,"yyerror: '%s'\n",str);
@@ -16,10 +17,13 @@ extern int yyparse();
 extern FILE *yyin;
 
 %}
+
 %token NUMBER HEAT ONOFF TARGET TEMPERATURE SETCURSOR
 %token ACC GYRO LMOTOR RMOTOR BATTERY CAPACITOR BALL CHARGER
 %token FLOAT MELEXISR MELEXISL PANDA ODOMETRY FIVEVLDO
+
 %%
+
 commands: /* empty */
          | commands command;
 
@@ -27,29 +31,27 @@ command: charger_switch |
          target_set|
 	 gyro|
 	 odometry|
-	charger|panda
+	 charger|
+         panda
 ;
 
 charger_switch: CHARGER ONOFF {
-             printf("\tCharger on or off\n");
-         };
+         printf("\t!!!Charger on or off\n");
+};
 
 target_set: TARGET TEMPERATURE NUMBER {
-             printf("\tTemperature set\n");
-         };
+         printf("\t!!!Temperature set\n");
+};
 gyro: SETCURSOR GYRO " x:" FLOAT " y:"  FLOAT " z:" FLOAT {
-             printf("\tGyro\n");
-
+         printf("\t!!!Gyro\n");
 };
 odometry: SETCURSOR ODOMETRY " dx:" FLOAT " dy:" FLOAT " yaw:" FLOAT {
-             printf("\tOdometry\n");
-
-
+         printf("\t!!!Odometry\n");
 };
 panda: SETCURSOR PANDA ONOFF {
-             printf("\tPanda\n");
+         printf("\t!!!Panda\n");
 };
 charger: SETCURSOR CHARGER ONOFF {
-             printf("\tCharger\n");
+         printf("\t!!!Charger\n");
 };
 %%
