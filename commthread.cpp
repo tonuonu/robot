@@ -31,7 +31,7 @@
 #include "opencv/highgui.h"
 #include <cvblob.h>
 #include "libcam.h"
-
+#include <ctype.h>
 #include "parser.hh"
 
 void
@@ -65,7 +65,13 @@ open_port(void){
     return (fd);
 }
 
-
+void dump(const char*txt,char*buf,int len) {
+    printf("%s:",txt);
+    for(int k=0;k<len;k++) {
+        printf("%c",isprint(buf[k]) ? buf[k] : '.');
+    }
+    printf("----\n");
+}        
 
 void *commthread(void * arg) {
     char content[512]="";
@@ -84,14 +90,17 @@ void *commthread(void * arg) {
 	    int nbytes=read(fd,buf,sizeof(buf));
             printf("read returned %d bytes\n",nbytes);
             if(nbytes>0) {
+                dump("read",buf,nbytes);
                 strncpy(content+contentlen,buf,nbytes);
                 contentlen+=nbytes;
+                dump("content",content,contentlen);
                 // Feed parser data from beginning of buffer up to ESC symbol
                 for(i=0,j=0;i<contentlen;i++,j++) {
-                    if(content[i]==27 && j!=0) {
+                    if(content[j]==27 && j!=0) {
+                        dump("parser",content,j);
                         parse_equation(content,j);
                         contentlen-=j;
-	    	        strncpy(content,content+i,contentlen);
+	    	        strncpy(content,content+j,contentlen);
 			printf("deducting %d from contentlen\n",j);
                         j=0;
                     }

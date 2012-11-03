@@ -39,11 +39,11 @@ command: charger_switch |
          battery |
 	 floatline|
          coilgun|
-         menuline |
+         menuline/* |
 	 error { 
              printf("hmm, parse error ''\n");
 yyerror;
-	 }
+	 }*/
 ;
 
 menuline: SETCURSOR "Normal" SETLINE SETLINE '>' "Competition" '<' SETLINE "Debug" "acc" "sensor" "Debug" "pos" "sensors" "Debug" "gyro" {
