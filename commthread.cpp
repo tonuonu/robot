@@ -73,6 +73,8 @@ void dump(const char*txt,char*buf,int len) {
     printf("----\n");
 }        
 
+float odometry[3]={0.0f,0.0f,0.0f};
+
 void *commthread(void * arg) {
     char content[512]="";
     int contentlen=0;
@@ -88,20 +90,20 @@ void *commthread(void * arg) {
 	    char buf[256];
             int i,j;
 	    int nbytes=read(fd,buf,sizeof(buf));
-            printf("read returned %d bytes\n",nbytes);
+            //printf("read returned %d bytes\n",nbytes);
             if(nbytes>0) {
-                dump("read",buf,nbytes);
+                //dump("read",buf,nbytes);
                 strncpy(content+contentlen,buf,nbytes);
                 contentlen+=nbytes;
-                dump("content",content,contentlen);
+                //dump("content",content,contentlen);
                 // Feed parser data from beginning of buffer up to ESC symbol
                 for(i=0,j=0;i<contentlen;i++,j++) {
                     if(content[j]==27 && j!=0) {
-                        dump("parser",content,j);
+                        //dump("parser",content,j);
                         parse_equation(content,j);
                         contentlen-=j;
 	    	        strncpy(content,content+j,contentlen);
-			printf("deducting %d from contentlen\n",j);
+			//printf("deducting %d from contentlen\n",j);
                         j=0;
                     }
                 } 

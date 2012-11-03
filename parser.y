@@ -4,7 +4,7 @@
 #define YYDEBUG 1
 void 
 yyerror(const char *str) {
-    fprintf(stderr,"yyerror: '%s'\n",str);
+    printf("yyerror: '%s'\n",str);
 }
 
 int 
@@ -18,20 +18,41 @@ extern FILE *yyin;
 
 %}
 
-%token NUMBER HEAT ONOFF TARGET TEMPERATURE SETCURSOR CLEARSCREEN 
-%token TEMP ACC GYRO LMOTOR RMOTOR BATTERY CAPACITOR BALL CHARGER
-%token X Y Z RADSEC FLOAT MELEXISR MELEXISL PANDA ODOMETRY FIVEVLDO SETLINE
+
+// Bison fundamentally works by asking flex to get the next token, which it
+// returns as an object of type "yystype".  But tokens could be of any
+// arbitrary data type!  So we deal with that in Bison by defining a C union
+// holding each of the types of tokens that Flex could return, and have Bison
+// use that union instead of "int" for the definition of "yystype":
+%union {
+	int ival;
+	float fval;
+	char *sval;
+}
+
+// define the "terminal symbol" token types I'm going to use (in CAPS
+// by convention), and associate each with a field of the union:
+%token <ival> NUMBER
+%token <fval> FLOAT 
+%token <sval> SVAL
+
+%token X Y Z HEAT ONOFF TARGET TEMPERATURE SETCURSOR CLEARSCREEN 
+%token TEMP ACC GYRO LMOTOR RMOTOR BATTERYNORM BATTERYDISC CAPACITOR CHARGER
+%token RADSEC MELEXISR MELEXISL PANDA ODOMETRY FIVEVLDO SETLINE
+%token COILGUN CHARGING WAITING BALL YAW RAD
+%token NORMAL COMPETITION DEBUG ACCSENSOR POSSENSORS
+
 
 %%
 
 commands: /* empty */
-         | commands command|CLEARSCREEN;
+         | commands SETCURSOR command|CLEARSCREEN;
 
-command: charger_switch |
+command: /* empty line */ |
+         charger|
          target_set|
 	 gyro|
 	 odometry|
-	 charger|
          panda|
 	 rightdrive|
 	 leftdrive|
@@ -46,55 +67,61 @@ yyerror;
 	 }*/
 ;
 
-menuline: SETCURSOR "Normal" SETLINE SETLINE '>' "Competition" '<' SETLINE "Debug" "acc" "sensor" "Debug" "pos" "sensors" "Debug" "gyro" {
+
+opt_selector: /* empty */ 
+	| '<' 
+	| '>';
+
+menuline: opt_selector NORMAL opt_selector COMPETITION opt_selector DEBUG ACCSENSOR opt_selector DEBUG POSSENSORS opt_selector DEBUG GYRO opt_selector {
          printf("\t!!!Menuline\n");
 }
+//parser:.[5;1HCoilgun: 399V, waiting , Ball! ----
 
-coilgun: SETCURSOR "Coilgun" ':' "0V" ',' "charging" ',' "Ball" '!' {
+coilgun: COILGUN NUMBER 'V' ',' coilstatus ',' BALL '!' {
          printf("\t!!!Coilgun\n");
 }
 
-floatline: SETCURSOR FLOAT FLOAT FLOAT FLOAT FLOAT FLOAT {
+coilstatus: CHARGING | WAITING;
+
+floatline: FLOAT FLOAT FLOAT FLOAT FLOAT FLOAT {
          printf("\t!!!Floatline\n");
 }
 
-battery: SETCURSOR BATTERY "disconnected" FLOAT 'V' NUMBER '%' "Panda" ONOFF {
+battery: batterystatus FLOAT 'V' NUMBER '%' PANDA ONOFF {
          printf("\t!!!Battery\n");
 };
+batterystatus: BATTERYDISC  | BATTERYNORM 
+;
 
-positionsensors: SETCURSOR "Position"  "sensors" "LDO" ONOFF {
+positionsensors: "Position"  "sensors" "LDO" ONOFF {
          printf("\t!!!Position sensors\n");
 };
 
-rightdrive: SETCURSOR "Right" "drive" ':' "brake" FLOAT {
+rightdrive: "Right" "drive" ':' "brake" FLOAT {
          printf("\t!!!right drive brake\n");
 };
 
-leftdrive: SETCURSOR "Left" "drive" ':' "brake" FLOAT {
+leftdrive: "Left" "drive" ':' "brake" FLOAT {
          printf("\t!!!left drive brake\n");
-};
-
-charger_switch: CHARGER ONOFF {
-         printf("\t!!!Charger on or off\n");
 };
 
 target_set: TARGET TEMPERATURE NUMBER {
          printf("\t!!!Temperature set\n");
 };
 
-gyro: SETCURSOR GYRO TEMP NUMBER X FLOAT RADSEC Y FLOAT RADSEC Z FLOAT RADSEC {
-         printf("\t!!!Gyro %d %f\n",$4,(float)$6);
+gyro: GYRO TEMP NUMBER X FLOAT RADSEC Y FLOAT RADSEC Z FLOAT RADSEC {
+         printf("\t!!!Gyro %d %f\n",$3,$5);
 };
 
-odometry: SETCURSOR ODOMETRY X FLOAT 'm' Y FLOAT 'm' "yaw" ':' FLOAT  "rad" {
-         printf("\t!!!Odometry\n");
+odometry: ODOMETRY X FLOAT 'm' Y FLOAT 'm' YAW FLOAT  RAD {
+         printf("\t!!!Odometry %f %f %f \n",$3,$6,$9);
 };
 
-panda: SETCURSOR PANDA ONOFF {
+panda: PANDA ONOFF {
          printf("\t!!!Panda\n");
 };
 
-charger: SETCURSOR CHARGER ONOFF {
+charger: CHARGER ONOFF {
          printf("\t!!!Charger\n");
 };
 %%
