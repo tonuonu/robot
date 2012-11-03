@@ -35,7 +35,7 @@
 #include "parser.hh"
 
 void
-parse_equation(char *) ;
+parse_equation(char *,int) ;
 
 int fd=-1;
 
@@ -66,9 +66,11 @@ open_port(void){
 }
 
 
-void *commthread(void * arg) {
-    for(;;) {
 
+void *commthread(void * arg) {
+    char content[512]="";
+    int contentlen=0;
+    for(;;) {
         if(fd < 0) {
             //printf("/dev/ttyUSB0 is not yet open. Trying to fix this...\n");
             open_port();
@@ -78,34 +80,23 @@ void *commthread(void * arg) {
             //printf("/dev/ttyUSB0 is still not open?! Now I give up!\n");
         } else {
 	    char buf[256];
+            int i,j;
 	    int nbytes=read(fd,buf,sizeof(buf));
             printf("read returned %d bytes\n",nbytes);
-/*	    char *p=strchr(buf,27);
-	    int offset=p-buf;
-            if(offset<200 && p[1]=='[' && p[4]==';' && p[6]=='H') {
-                char *colonptr=strchr(&p[7],':');
-                if(colonptr>0) {
-	            *colonptr=0;
-	            printf("%s\n",&p[7]);
-*/
-
-parse_equation(buf);/*
- // +2 on strlen is for the two extra '\0' characters
-    // needed by flex when scanning strings.
-    YY_BUFFER_STATE yybs = yy_scan_buffer(buf, strlen(buf)+2);
-    yy_switch_to_buffer(yybs);
-    yyparse();
-    yy_delete_buffer(yybs);
-*/
-#if 0
-const char **kw=keywords;
-int kwnum=0;
-while(*kw) {
-if(strcmp(*kw,&p[7])==0) {
-printf("->Matched '%s'\n",*kw);
-#endif
-  //              }
-           // }
+            if(nbytes>0) {
+                strncpy(content+contentlen,buf,nbytes);
+                contentlen+=nbytes;
+                // Feed parser data from beginning of buffer up to ESC symbol
+                for(i=0,j=0;i<contentlen;i++,j++) {
+                    if(content[i]==27 && j!=0) {
+                        parse_equation(content,j);
+                        contentlen-=j;
+	    	        strncpy(content,content+i,contentlen);
+			printf("deducting %d from contentlen\n",j);
+                        j=0;
+                    }
+                } 
+            }
         }
 #if 0
         pthread_mutex_lock( &count_mutex );

@@ -100,8 +100,8 @@ main(int argc, char *argv[]) {
    
     config_destroy(cf);
 
-    pthread_create( &thread1, NULL, &camthread, NULL);
- //   pthread_create( &thread2, NULL, &commthread, NULL);
+  //  pthread_create( &thread1, NULL, &camthread, NULL);
+    pthread_create( &thread2, NULL, &commthread, NULL);
 
     pthread_join( thread1, NULL);
     pthread_join( thread2, NULL);
