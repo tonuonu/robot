@@ -1,6 +1,8 @@
 %{
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+#include "globals.h"
 #define YYDEBUG 1
 void 
 yyerror(const char *str) {
@@ -74,6 +76,9 @@ opt_selector: /* empty */
 
 menuline: opt_selector NORMAL opt_selector COMPETITION opt_selector DEBUG ACCSENSOR opt_selector DEBUG POSSENSORS opt_selector DEBUG GYRO opt_selector {
          printf("\t!!!Menuline\n");
+         pthread_mutex_lock( &count_mutex2 );
+         pthread_mutex_unlock( &count_mutex2 );
+
 }
 //parser:.[5;1HCoilgun: 399V, waiting , Ball! ----
 

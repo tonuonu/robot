@@ -37,6 +37,7 @@
 using namespace cvb;
 
 pthread_mutex_t count_mutex     = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t count_mutex2    = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  condition_var   = PTHREAD_COND_INITIALIZER;
 
 void *camthread(void * arg);
@@ -101,14 +102,19 @@ main(int argc, char *argv[]) {
     config_destroy(cf);
 
     pthread_create( &thread1, NULL, &camthread, NULL);
-   // pthread_create( &thread2, NULL, &commthread, NULL);
+    pthread_create( &thread2, NULL, &commthread, NULL);
 
     for(;;) {
         // Lock mutex and then wait for signal to relase mutex
         pthread_mutex_lock( &count_mutex );
+        pthread_mutex_lock( &count_mutex2);
         pthread_cond_wait( &condition_var, &count_mutex );
         printf("x\n");
+        pthread_mutex_unlock( &count_mutex2 );
         pthread_mutex_unlock( &count_mutex );
+
+
+
     }
 
     pthread_join( thread1, NULL);
