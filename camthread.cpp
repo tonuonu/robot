@@ -113,6 +113,24 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
             cvPutText (imgBGR,txt,cvPoint(blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y), &font, cvScalar(255,255,0));
         }
         printf("%s at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+        if(strcasecmp("ball",txt)==0) {
+	    int gox=blobs.begin()->second->centroid.x - centerx ;
+	    int goy=centery - blobs.begin()->second->centroid.y ;
+
+
+
+            // Lock mutex and then wait for signal to relase mutex
+            pthread_mutex_lock( &count_mutex );
+            printf("cammutex %d %d\n",gox,goy); 
+#if 0
+            // Wait while parserthread() operates on count
+            // mutex unlocked if condition varialbe in parserthread() signaled.
+            pthread_cond_wait( &condition_var, &count_mutex );
+#endif
+            pthread_mutex_unlock( &count_mutex );
+
+
+        }
     }
     if(debug) {
         cvRenderBlobs(labelImg, blobs, imgBGR, imgBGR,CV_BLOB_RENDER_BOUNDING_BOX);
@@ -121,7 +139,9 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
     }
     cvReleaseBlobs(blobs);
 }
-
+/*
+  Color ranges for these items 
+*/
 int ball[6]={0,0,0,0,0,0};
 int gate[6]={0,0,0,0,0,0};
 int mygate[6]={0,0,0,0,0,0};
@@ -182,7 +202,7 @@ void *camthread(void * arg) {
         //double minVal,maxVal;
         cvMerge(iply,iplu ,iplv , NULL, imgYUV);
         cvCircle(imgYUV, cvPoint((int)centerx,(int)centery), 80, cvScalarAll(0), 80);
-	cvSmooth(imgYUV,imgYUV,CV_MEDIAN,5,5);
+	//cvSmooth(imgYUV,imgYUV,CV_MEDIAN,5,5);
         labelImg=cvCreateImage(cvGetSize(imgYUV), IPL_DEPTH_LABEL, 1);
         if(debug) {
             cvCvtColor(imgYUV,imgBGR,CV_YUV2BGR);
@@ -198,7 +218,7 @@ void *camthread(void * arg) {
         detectblob("gate",imgGate,labelImg,imgBGR,&tracks_gate) ;
         detectblob("mygate",imgMyGate,labelImg,imgBGR,&tracks_mygate) ;
         if(debug) {
-            printf("x %ld y %ld\n",centerx,centery);
+            //printf("center x %ld y %ld\n",centerx,centery);
             /* if( drawing_box ) {
             draw_box( iply, box );
             } */
@@ -221,20 +241,6 @@ void *camthread(void * arg) {
     cvReleaseTracks(tracks_ball);
     cvReleaseTracks(tracks_gate);
     cvReleaseTracks(tracks_mygate);
-#endif
-#if 0
-    // Lock mutex and then wait for signal to relase mutex
-    pthread_mutex_lock( &count_mutex );
-
-    // Wait while parserthread() operates on count
-    // mutex unlocked if condition varialbe in parserthread() signaled.
-    pthread_cond_wait( &condition_var, &count_mutex );
-    count++;
-    printf("Counter value camthread: %d\n",count);
-
-    pthread_mutex_unlock( &count_mutex );
-
-    if(count >= COUNT_DONE) return(NULL);
 #endif
 }
 

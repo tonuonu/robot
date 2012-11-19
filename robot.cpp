@@ -100,8 +100,23 @@ main(int argc, char *argv[]) {
    
     config_destroy(cf);
 
-  //  pthread_create( &thread1, NULL, &camthread, NULL);
-    pthread_create( &thread2, NULL, &commthread, NULL);
+    pthread_create( &thread1, NULL, &camthread, NULL);
+   // pthread_create( &thread2, NULL, &commthread, NULL);
+
+    for(;;) {
+
+    // Lock mutex and then wait for signal to relase mutex
+        pthread_mutex_lock( &count_mutex );
+       // printf("x\n");
+
+#if 0
+    // Wait while parserthread() operates on count
+    // mutex unlocked if condition varialbe in parserthread() signaled.
+    pthread_cond_wait( &condition_var, &count_mutex );
+#endif
+        pthread_mutex_unlock( &count_mutex );
+    }
+
 
     pthread_join( thread1, NULL);
     pthread_join( thread2, NULL);
