@@ -7,3 +7,5 @@ extern int mygate[6];
 extern float odometry[3];
 
 extern pthread_mutex_t count_mutex ;
+extern pthread_cond_t  condition_var;
+

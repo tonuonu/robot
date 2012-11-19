@@ -117,19 +117,11 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
 	    int gox=blobs.begin()->second->centroid.x - centerx ;
 	    int goy=centery - blobs.begin()->second->centroid.y ;
 
-
-
             // Lock mutex and then wait for signal to relase mutex
             pthread_mutex_lock( &count_mutex );
             printf("cammutex %d %d\n",gox,goy); 
-#if 0
-            // Wait while parserthread() operates on count
-            // mutex unlocked if condition varialbe in parserthread() signaled.
-            pthread_cond_wait( &condition_var, &count_mutex );
-#endif
+            pthread_cond_signal( &condition_var );
             pthread_mutex_unlock( &count_mutex );
-
-
         }
     }
     if(debug) {
