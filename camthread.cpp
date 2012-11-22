@@ -94,6 +94,9 @@ void my_mouse_callback(int event, int x, int y, int flags, void* param) {
     }
 }
 
+int gox=0;
+int goy=0;
+
 void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR,CvTracks*tracks) {
     CvBlobs blobs;
     int result=cvLabel(needle, labelImg, blobs);
@@ -114,8 +117,8 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
         }
         printf("%s at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
         if(strcasecmp("ball",txt)==0) {
-	    int gox=blobs.begin()->second->centroid.x - centerx ;
-	    int goy=centery - blobs.begin()->second->centroid.y ;
+	    gox=blobs.begin()->second->centroid.x - centerx ;
+	    goy=centery - blobs.begin()->second->centroid.y ;
 
             // Lock mutex and then wait for signal to relase mutex
             pthread_mutex_lock( &count_mutex );

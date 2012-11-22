@@ -43,8 +43,10 @@ pthread_cond_t  condition_var   = PTHREAD_COND_INITIALIZER;
 void *camthread(void * arg);
 void *commthread(void * arg);
 
-int  count = 0;
-int  debug = 0;
+int pwmdirty=0;
+int pwm[2]={0,0};
+int count = 0;
+int debug = 0;
 long int centerx = 0;
 long int centery = 0;
 #define COUNT_DONE  10
@@ -109,11 +111,26 @@ main(int argc, char *argv[]) {
         pthread_mutex_lock( &count_mutex );
         pthread_mutex_lock( &count_mutex2);
         pthread_cond_wait( &condition_var, &count_mutex );
-        printf("x\n");
+        printf("Computation\n");
+        if(goy>0) { // If Y is positive, we need to go ahead
+            if(gox>0) { // If X is positive, we need to turn right, i.e. slow down right side or even move it back
+		pwm[0]=100;
+		pwm[1]=100-gox;
+            } else {
+		pwm[0]=100+gox; // gox is negative!
+		pwm[1]=100;
+            }
+        } else { // otherwise ball is backside, so we turn around
+            if(gox>0) { // If X is positive, we need to turn right
+		pwm[0]=100;
+		pwm[1]=-100;
+            } else {
+		pwm[0]=-100;
+		pwm[1]=100;
+	    }
+        }
         pthread_mutex_unlock( &count_mutex2 );
         pthread_mutex_unlock( &count_mutex );
-
-
 
     }
 

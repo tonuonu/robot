@@ -33,6 +33,7 @@
 #include "libcam.h"
 #include <ctype.h>
 #include "parser.hh"
+#include "globals.h"
 
 void
 parse_equation(char *,int) ;
@@ -109,10 +110,12 @@ void *commthread(void * arg) {
                 } 
             }
             int err;
-            const char*pwm="pwm 40 40\r\r\r";
-            for(i=0;i<strlen(pwm);i++) {
-                err=write(fd,pwm+i,1);
-                usleep(1000);
+            char pwmbuf[64];
+            snprintf(pwmbuf,sizeof(pwmbuf),"pwm %d %d\r\r\r",pwm[0],pwm[1]);
+            printf("pwm command %s\n",pwmbuf);
+            for(i=0;i<strlen(pwmbuf);i++) {
+                err=write(fd,pwmbuf+i,1);
+                usleep(5000);
  //               printf("errcode %d\n",err);
             }
         }
