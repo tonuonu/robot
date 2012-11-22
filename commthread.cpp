@@ -45,7 +45,7 @@ int
 open_port(void){
     struct termios tio;
     memset(&tio,0,sizeof(tio));
-    tio.c_iflag=0;
+    tio.c_iflag=IGNPAR|ICRNL;
     tio.c_oflag=0;
     tio.c_cflag=CS8|CREAD|CLOCAL;           // 8n1, see termios.h for more information
     tio.c_lflag=0;
@@ -87,9 +87,9 @@ void *commthread(void * arg) {
         if(fd < 0)  {
             //printf("/dev/ttyUSB0 is still not open?! Now I give up!\n");
         } else {
-	    char buf[256];
+            char buf[256];
             int i,j;
-	    int nbytes=read(fd,buf,sizeof(buf));
+            int nbytes=read(fd,buf,sizeof(buf));
             //printf("read returned %d bytes\n",nbytes);
             if(nbytes>0) {
                 //dump("read",buf,nbytes);
@@ -102,11 +102,18 @@ void *commthread(void * arg) {
                         //dump("parser",content,j);
                         parse_equation(content,j);
                         contentlen-=j;
-	    	        strncpy(content,content+j,contentlen);
-			//printf("deducting %d from contentlen\n",j);
+                        strncpy(content,content+j,contentlen);
+                        //printf("deducting %d from contentlen\n",j);
                         j=0;
                     }
                 } 
+            }
+            int err;
+            const char*pwm="pwm 40 40\r\r\r";
+            for(i=0;i<strlen(pwm);i++) {
+                err=write(fd,pwm+i,1);
+                usleep(1000);
+ //               printf("errcode %d\n",err);
             }
         }
 #if 0
