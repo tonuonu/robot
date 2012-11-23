@@ -34,7 +34,6 @@
 #include "image.h"
 #include "globals.h"
 
-#define MAXPWM 50
 #define MAXCOORD 145
 
 using namespace cvb;
@@ -50,8 +49,9 @@ int pwmdirty=0;
 int pwm[2]={0,0};
 int count = 0;
 int debug = 0;
-long int centerx = 0;
-long int centery = 0;
+long int centerx = 0L;
+long int centery = 0L;
+long int maxpwm  = 100L;
 #define COUNT_DONE  10
 #define COUNT_HALT1  3
 #define COUNT_HALT2  6
@@ -74,6 +74,7 @@ main(int argc, char *argv[]) {
         return(EXIT_FAILURE);
     }
     
+    config_lookup_int(cf, "maxpwm",&maxpwm);
     config_lookup_int(cf, "center.x",&centerx);
     config_lookup_int(cf, "center.y",&centery);
     retries=config_lookup(cf, "colors.ball");
@@ -117,19 +118,19 @@ main(int argc, char *argv[]) {
         printf("Computation\n");
         if(goy>0) { // If Y is positive, we need to go ahead
             if(gox>0) { // If X is positive, we need to turn right, i.e. slow down right side or even move it back
-		pwm[0]=MAXPWM;
-		pwm[1]=MAXPWM-gox*MAXPWM/MAXCOORD;
+		pwm[0]=maxpwm;
+		pwm[1]=maxpwm-gox*maxpwm/MAXCOORD;
             } else {
-		pwm[0]=MAXPWM+gox*MAXPWM/MAXCOORD; // gox is negative!
-		pwm[1]=MAXPWM;
+		pwm[0]=maxpwm+gox*maxpwm/MAXCOORD; // gox is negative!
+		pwm[1]=maxpwm;
             }
         } else { // otherwise ball is backside, so we turn around around own center
             if(gox>0) { // If X is positive, we need to turn right
-		pwm[0]=MAXPWM;
-		pwm[1]=-MAXPWM;
+		pwm[0]=maxpwm;
+		pwm[1]=-maxpwm;
             } else { // If Y is negative, we turn left
-		pwm[0]=-MAXPWM;
-		pwm[1]=MAXPWM;
+		pwm[0]=-maxpwm;
+		pwm[1]=maxpwm;
 	    }
         }
         pthread_mutex_unlock( &count_mutex2 );
