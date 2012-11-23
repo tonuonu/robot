@@ -6,7 +6,7 @@
 #define YYDEBUG 1
 void 
 yyerror(const char *str) {
-    printf("yyerror: '%s'\n",str);
+//    printf("yyerror: '%s'\n",str);
 }
 
 int 

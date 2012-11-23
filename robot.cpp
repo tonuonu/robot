@@ -34,6 +34,9 @@
 #include "image.h"
 #include "globals.h"
 
+#define MAXPWM 50
+#define MAXCOORD 145
+
 using namespace cvb;
 
 pthread_mutex_t count_mutex     = PTHREAD_MUTEX_INITIALIZER;
@@ -114,19 +117,19 @@ main(int argc, char *argv[]) {
         printf("Computation\n");
         if(goy>0) { // If Y is positive, we need to go ahead
             if(gox>0) { // If X is positive, we need to turn right, i.e. slow down right side or even move it back
-		pwm[0]=100;
-		pwm[1]=100-gox;
+		pwm[0]=MAXPWM;
+		pwm[1]=MAXPWM-gox*MAXPWM/MAXCOORD;
             } else {
-		pwm[0]=100+gox; // gox is negative!
-		pwm[1]=100;
+		pwm[0]=MAXPWM+gox*MAXPWM/MAXCOORD; // gox is negative!
+		pwm[1]=MAXPWM;
             }
-        } else { // otherwise ball is backside, so we turn around
+        } else { // otherwise ball is backside, so we turn around around own center
             if(gox>0) { // If X is positive, we need to turn right
-		pwm[0]=100;
-		pwm[1]=-100;
-            } else {
-		pwm[0]=-100;
-		pwm[1]=100;
+		pwm[0]=MAXPWM;
+		pwm[1]=-MAXPWM;
+            } else { // If Y is negative, we turn left
+		pwm[0]=-MAXPWM;
+		pwm[1]=MAXPWM;
 	    }
         }
         pthread_mutex_unlock( &count_mutex2 );

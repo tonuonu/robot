@@ -115,7 +115,8 @@ void detectblob(const char*txt,IplImage*needle,IplImage*labelImg,IplImage*imgBGR
             cvInitFont(&font,CV_FONT_HERSHEY_SIMPLEX|CV_FONT_ITALIC, hScale,vScale,0,lineWidth);
             cvPutText (imgBGR,txt,cvPoint(blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y), &font, cvScalar(255,255,0));
         }
-        printf("%s at %.1f %.1f\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y);
+        printf("%s at %.1f %.1f (%.0f %.0f)\n",txt,blobs.begin()->second->centroid.x,blobs.begin()->second->centroid.y,
+blobs.begin()->second->centroid.x - centerx,centery - blobs.begin()->second->centroid.y);
         if(strcasecmp("ball",txt)==0) {
 	    gox=blobs.begin()->second->centroid.x - centerx ;
 	    goy=centery - blobs.begin()->second->centroid.y ;
