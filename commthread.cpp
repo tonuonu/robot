@@ -110,11 +110,15 @@ void *commthread(void * arg) {
                 } 
             }
             int err;
-            char pwmbuf[64];
-            snprintf(pwmbuf,sizeof(pwmbuf),"pwm %d %d\r\r\r",pwm[0],pwm[1]);
-            printf("pwm command %s\n",pwmbuf);
-            for(i=0;i<strlen(pwmbuf);i++) {
-                err=write(fd,pwmbuf+i,1);
+            char cmdbuf[64];
+#if 1
+            snprintf(cmdbuf,sizeof(cmdbuf),"twist %f %f\r",twist[0],twist[1]);
+#else
+            snprintf(cmdbuf,sizeof(cmdbuf),"pwm %d %d\r\r\r",pwm[0],pwm[1]);
+#endif
+            printf("command %s\n",cmdbuf);
+            for(i=0;i<strlen(cmdbuf);i++) {
+                err=write(fd,cmdbuf+i,1);
                 usleep(5000);
  //               printf("errcode %d\n",err);
             }

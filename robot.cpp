@@ -34,7 +34,7 @@
 #include "image.h"
 #include "globals.h"
 
-#define MAXCOORD 145
+#define MAXCOORD 145 
 
 using namespace cvb;
 
@@ -47,6 +47,7 @@ void *commthread(void * arg);
 
 int pwmdirty=0;
 int pwm[2]={0,0};
+float twist[2]={0.0,0.0};
 int count = 0;
 int debug = 0;
 long int centerx = 0L;
@@ -116,6 +117,10 @@ main(int argc, char *argv[]) {
         pthread_mutex_lock( &count_mutex2);
         pthread_cond_wait( &condition_var, &count_mutex );
         printf("Computation\n");
+        // In case we use twist command, first is X and second is Y
+        twist[0] = (float)gox/MAXCOORD; 
+        twist[1] = (float)goy/MAXCOORD;
+        // For PWM command we need different formula
         if(goy>0) { // If Y is positive, we need to go ahead
             if(gox>0) { // If X is positive, we need to turn right, i.e. slow down right side or even move it back
 		pwm[0]=maxpwm;

@@ -5,6 +5,7 @@ extern int ball[6];
 extern int gate[6];
 extern int mygate[6];
 extern float odometry[3];
+extern float twist[2];
 extern int pwm[2];
 extern int pwmdirty;
 extern int gox,goy;
